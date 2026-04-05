@@ -1,0 +1,33 @@
+* Host localhost:8080 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0*   Trying [::1]:8080...
+* Established connection to localhost (::1 port 8080) from ::1 port 60720 
+* using HTTP/1.x
+> GET /api/v1/pannes HTTP/1.1
+> Host: localhost:8080
+> User-Agent: curl/8.18.0
+> Accept: */*
+> Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZXNwb25zYWJsZUBmYWN1bHRlLm1hIiwiaWF0IjoxNzc1MzE3MTc1LCJleHAiOjE3NzU0MDM1NzV9.cXUJHwElgZvSMZdcoRg8hsEs-hJUsNsxx9tbtxRwwFo
+> 
+* Request completely sent off
+< HTTP/1.1 200 
+< Vary: Origin
+< Vary: Access-Control-Request-Method
+< Vary: Access-Control-Request-Headers
+< X-Content-Type-Options: nosniff
+< X-XSS-Protection: 0
+< Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+< Pragma: no-cache
+< Expires: 0
+< X-Frame-Options: DENY
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Sat, 04 Apr 2026 15:54:47 GMT
+< 
+{ [65 bytes data]
+100     59   0     59   0      0   1734      0                              0100     59   0     59   0      0   1702      0                              0100     59   0     59   0      0   1663      0                              0
+* Connection #0 to host localhost:8080 left intact
+{"success":true,"data":[],"message":"Pannes récupérées"}
