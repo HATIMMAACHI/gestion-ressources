@@ -1,0 +1,158 @@
+@reference "tailwindcss";
+
+@layer base {
+  :root {
+    --violet: #5B4FC8;
+    --violet-dark: #4A3FB0;
+    --violet-light: #F0EEFF;
+    --bg-page: #F4F5F9;
+    --bg-card: #FFFFFF;
+    --border: #ECEDF2;
+    --text-primary: #1A1D2E;
+    --text-secondary: #6B6F80;
+    --text-muted: #A0A3B1;
+    --green: #0C9E6A;
+    --green-bg: #E6F9F1;
+    --orange: #E07B00;
+    --orange-bg: #FFF3E0;
+    --red: #E03E3E;
+    --red-bg: #FEEBEB;
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  .pro-card {
+    @apply bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-[var(--shadow)] transition-shadow duration-200;
+  }
+  .pro-card:hover {
+    @apply shadow-md;
+  }
+
+  .pro-input {
+    @apply w-full h-[48px] rounded-[var(--radius-md)] border border-[var(--border)] bg-white px-4 py-2 text-sm text-[var(--text-primary)] transition-all outline-none focus:border-[var(--violet)] focus:ring-1 focus:ring-[var(--violet)];
+  }
+
+  .pro-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--violet)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--violet-dark)] active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  
+  .pro-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] bg-white border border-[var(--border)] px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--bg-page)] active:scale-95;
+  }
+
+  /* Table styling */
+  .pro-table-wrapper {
+    @apply overflow-x-auto w-full bg-white rounded-[var(--radius-lg)] border border-[var(--border)] shadow-[var(--shadow)];
+  }
+  .pro-table-wrapper table {
+    @apply w-full text-left border-collapse text-sm;
+  }
+  .pro-table-wrapper th {
+    @apply bg-white border-b border-[var(--border)] px-6 py-4 font-semibold text-[var(--text-secondary)] text-xs uppercase tracking-wider whitespace-nowrap;
+  }
+  .pro-table-wrapper td {
+    @apply border-b border-[var(--border)] px-6 py-4 text-[var(--text-primary)] whitespace-nowrap bg-white;
+  }
+  .pro-table-wrapper tr:last-child td {
+    @apply border-b-0;
+  }
+  .pro-table-wrapper tbody tr:hover td {
+    @apply bg-[#FAFBFF];
+  }
+
+  /* Status Badges NexaDesk */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-transparent;
+  }
+  .status-badge-success {
+    @apply bg-[var(--green-bg)] text-[var(--green)];
+  }
+  .status-badge-warning {
+    @apply bg-[var(--orange-bg)] text-[var(--orange)];
+  }
+  .status-badge-danger {
+    @apply bg-[var(--red-bg)] text-[var(--red)];
+  }
+  .status-badge-violet {
+    @apply bg-[var(--violet-light)] text-[var(--violet)];
+  }
+
+  /* Headings NexaDesk */
+  .page-title {
+    @apply text-[20px] font-bold text-[var(--text-primary)] tracking-tight m-0 leading-tight;
+  }
+
+  /* Toast Notifications */
+  .toast-stack {
+    @apply fixed top-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm;
+  }
+
+  .toast-card {
+    @apply flex items-start gap-4 px-6 py-4 rounded-[var(--radius-md)] shadow-lg border border-[var(--border)] bg-white text-[var(--text-primary)] pointer-events-auto;
+    animation: slideInDown 300ms ease-out;
+  }
+
+  .toast-card > div {
+    @apply flex-1;
+  }
+
+  .toast-title {
+    @apply font-bold text-sm mb-1;
+  }
+
+  .toast-message {
+    @apply text-sm text-[var(--text-secondary)];
+  }
+
+  .toast-close {
+    @apply shrink-0 ml-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors font-bold text-lg leading-none cursor-pointer;
+  }
+
+  .toast-success {
+    @apply border-l-4 border-l-[var(--green)];
+  }
+
+  .toast-error {
+    @apply border-l-4 border-l-[var(--red)];
+  }
+
+  .toast-warning {
+    @apply border-l-4 border-l-[var(--orange)];
+  }
+
+  @keyframes slideInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideOutUp {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
+
+  .toast-card.removing {
+    animation: slideOutUp 300ms ease-out forwards;
+  }
+}
