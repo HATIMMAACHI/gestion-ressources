@@ -49,5 +49,6 @@ public class Constat {
     private LocalDate dateConstat;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean notificationEnvoyee = false;
 }

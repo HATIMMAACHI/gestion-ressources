@@ -13,4 +13,6 @@ public interface PanneRepository extends JpaRepository<Panne, UUID> {
     List<Panne> findByRessourceType(TypeRessource type);
     List<Panne> findBySignaledById(UUID signaledById);
     boolean existsByRessourceIdAndStatutNot(UUID ressourceId, StatutPanne statut);
+
+    List<Panne> findByRessourceFournisseurId(UUID supplierId);
 }

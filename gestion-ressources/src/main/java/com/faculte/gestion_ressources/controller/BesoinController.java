@@ -30,7 +30,7 @@ public class BesoinController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('CHEF_DEPT', 'RESPONSABLE')")
+    @PreAuthorize("hasAnyRole('CHEF_DEPT', 'RESPONSABLE', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<List<BesoinResponse>>> findAll(
             @RequestParam(required = false) UUID departementId,
             @RequestParam(required = false) StatutBesoin statut) {
@@ -38,7 +38,7 @@ public class BesoinController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('CHEF_DEPT')")
+    @PreAuthorize("hasAnyRole('CHEF_DEPT', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<BesoinResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody BesoinRequest request) {
@@ -54,7 +54,7 @@ public class BesoinController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('CHEF_DEPT')")
+    @PreAuthorize("hasAnyRole('CHEF_DEPT', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         besoinService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Besoin supprimé"));

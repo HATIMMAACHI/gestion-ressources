@@ -30,11 +30,6 @@ public class DataInitializer implements CommandLineRunner {
             .findFirst()
             .orElseGet(() -> departementRepository.save(Departement.builder().nom("Informatique").build()));
 
-        Departement deptMath = departementRepository.findAll().stream()
-            .filter(dept -> "Mathématiques".equals(dept.getNom()))
-            .findFirst()
-            .orElseGet(() -> departementRepository.save(Departement.builder().nom("Mathématiques").build()));
-
         upsertUser("Chef Info", "chef@info.faculte.ma", "password", Role.CHEF_DEPT, () -> ChefDepartement.builder().departement(deptInfo));
         upsertUser("Enseignant Info", "enseignant@info.faculte.ma", "password", Role.ENSEIGNANT, () -> Enseignant.builder().departement(deptInfo));
         upsertUser("Responsable Achats", "responsable@faculte.ma", "password", Role.RESPONSABLE, ResponsableRessources::builder);
@@ -44,7 +39,7 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Données de test synchronisées avec succès.");
     }
 
-        private void upsertUser(String nom, String email, String password, Role role, Supplier<? extends User.UserBuilder<?, ?>> builderSupplier) {
+    private void upsertUser(String nom, String email, String password, Role role, Supplier<? extends User.UserBuilder<?, ?>> builderSupplier) {
         String encodedPassword = passwordEncoder.encode(password);
 
         User user = userRepository.findByEmail(email).orElseGet(() -> switch (role) {
@@ -66,17 +61,7 @@ public class DataInitializer implements CommandLineRunner {
         user.setPasswordHash(encodedPassword);
         user.setRole(role);
 
-        if (user instanceof ChefDepartement chef && role == Role.CHEF_DEPT) {
-            chef.setDepartement(departementRepository.findAll().stream()
-                .filter(dept -> "Informatique".equals(dept.getNom()))
-                .findFirst()
-                .orElse(null));
-        } else if (user instanceof Enseignant enseignant && role == Role.ENSEIGNANT) {
-            enseignant.setDepartement(departementRepository.findAll().stream()
-                .filter(dept -> "Informatique".equals(dept.getNom()))
-                .findFirst()
-                .orElse(null));
-        } else if (user instanceof Fournisseur fournisseur && role == Role.FOURNISSEUR) {
+        if (user instanceof Fournisseur fournisseur && role == Role.FOURNISSEUR) {
             fournisseur.setNomSociete(nom);
             fournisseur.setEstListeNoire(Boolean.FALSE);
         }

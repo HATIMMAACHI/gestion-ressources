@@ -10,5 +10,7 @@ public interface ConstatMapper {
 
     @Mapping(target = "panneId", source = "panne.id")
     @Mapping(target = "technicienId", source = "technicien.id")
+    @Mapping(target = "technicienNom", source = "technicien.nom")
+    @Mapping(target = "dateApparitionPanne", source = "panne.dateApparition")
     ConstatResponse toResponse(Constat entity);
 }

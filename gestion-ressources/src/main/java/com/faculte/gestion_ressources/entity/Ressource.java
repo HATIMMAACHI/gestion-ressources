@@ -47,6 +47,9 @@ public abstract class Ressource {
 
     @Column(nullable = false)
     private LocalDate dateLivraison;
+    
+    @Column(nullable = false)
+    private Integer dureeGarantie; // en mois
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fournisseur_id", nullable = false)

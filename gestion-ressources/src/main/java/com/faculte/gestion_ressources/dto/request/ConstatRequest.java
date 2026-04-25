@@ -16,6 +16,6 @@ public class ConstatRequest {
     @NotNull(message = "La fréquence est requise")
     private Frequence frequence;
 
-    @NotNull(message = "Le type de panne est requis")
+    @NotNull(message = "Le type de panne est requis (LOGICIEL_SYSTEME, LOGICIEL_UTILITAIRE ou MATERIEL)")
     private TypePanne typePanne;
 }

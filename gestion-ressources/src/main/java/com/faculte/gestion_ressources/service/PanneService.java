@@ -15,7 +15,8 @@ public interface PanneService {
     List<PanneResponse> findAll(StatutPanne statut, UUID ressourceTypeId);
     List<PanneResponse> findMine(StatutPanne statut, String currentUserEmail);
     PanneResponse findById(UUID id);
-    PanneResponse updateStatut(UUID id, PanneStatusRequest request);
+    PanneResponse prendreEnCharge(UUID id, String technicienEmail);
+    PanneResponse resolveDirectly(UUID id, String technicienEmail);
     PanneResponse addConstat(UUID panneId, ConstatRequest request, String technicienEmail);
     PanneResponse addDecision(UUID panneId, DecisionRequest request);
 }

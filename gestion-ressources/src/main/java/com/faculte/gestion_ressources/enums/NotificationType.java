@@ -4,5 +4,6 @@ public enum NotificationType {
     BANNISSEMENT,
     OFFRE_ACCEPTEE,
     OFFRE_REJETEE,
-    RENVOI_RESSOURCE
+    RENVOI_RESSOURCE,
+    CONSTAT_PANNE
 }

@@ -82,16 +82,45 @@ public class BesoinServiceImpl implements BesoinService {
 
     @Override
     public List<BesoinResponse> findAll(UUID departementId, StatutBesoin statut) {
-        List<Besoin> besoins;
-        if (departementId != null && statut != null) {
-            besoins = besoinRepository.findByDepartementIdAndStatut(departementId, statut);
-        } else if (departementId != null) {
-            besoins = besoinRepository.findByDepartementId(departementId);
-        } else if (statut != null) {
-            besoins = besoinRepository.findByStatut(statut);
-        } else {
-            besoins = besoinRepository.findAll();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new AppException(HttpStatus.UNAUTHORIZED, "Utilisateur non authentifié");
         }
+
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        List<Besoin> besoins;
+
+        if (currentUser.getRole() == Role.ENSEIGNANT) {
+            // Un enseignant ne voit que ses propres besoins
+            besoins = besoinRepository.findAll().stream()
+                    .filter(b -> b.getDemandeur() != null && b.getDemandeur().getId().equals(currentUser.getId()))
+                    .collect(Collectors.toList());
+        } else if (currentUser.getRole() == Role.CHEF_DEPT) {
+            // Un chef de département voit tout son département
+            Departement dept = getUserDepartement(currentUser);
+            besoins = besoinRepository.findByDepartementId(dept.getId());
+        } else {
+            // Le responsable voit tout, éventuellement filtré
+            if (departementId != null && statut != null) {
+                besoins = besoinRepository.findByDepartementIdAndStatut(departementId, statut);
+            } else if (departementId != null) {
+                besoins = besoinRepository.findByDepartementId(departementId);
+            } else if (statut != null) {
+                besoins = besoinRepository.findByStatut(statut);
+            } else {
+                besoins = besoinRepository.findAll();
+            }
+        }
+
+        // Application du filtre de statut si présent pour les rôles non-responsables
+        if (statut != null && currentUser.getRole() != Role.RESPONSABLE) {
+            besoins = besoins.stream()
+                    .filter(b -> b.getStatut() == statut)
+                    .collect(Collectors.toList());
+        }
+
         return besoins.stream().map(besoinMapper::toResponse).collect(Collectors.toList());
     }
 
@@ -100,6 +129,15 @@ public class BesoinServiceImpl implements BesoinService {
     public BesoinResponse update(UUID id, BesoinRequest request) {
         Besoin besoin = besoinRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Besoin non trouvé"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        // Vérification de propriété pour les enseignants
+        if (currentUser.getRole() == Role.ENSEIGNANT && !besoin.getDemandeur().getId().equals(currentUser.getId())) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Vous ne pouvez modifier que vos propres demandes");
+        }
 
         if (besoin.getStatut() != StatutBesoin.BROUILLON && besoin.getStatut() != StatutBesoin.EN_REUNION) {
             throw new AppException(HttpStatus.CONFLICT, "Le besoin ne peut être modifié qu'en statut BROUILLON ou EN_REUNION");
@@ -162,6 +200,15 @@ public class BesoinServiceImpl implements BesoinService {
     public void delete(UUID id) {
         Besoin besoin = besoinRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Besoin non trouvé"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        // Vérification de propriété pour les enseignants
+        if (currentUser.getRole() == Role.ENSEIGNANT && !besoin.getDemandeur().getId().equals(currentUser.getId())) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Vous ne pouvez supprimer que vos propres demandes");
+        }
 
         if (besoin.getStatut() != StatutBesoin.BROUILLON) {
             throw new AppException(HttpStatus.CONFLICT, "Seul un besoin en statut BROUILLON peut être supprimé");

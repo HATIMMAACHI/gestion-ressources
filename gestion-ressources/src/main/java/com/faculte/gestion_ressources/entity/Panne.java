@@ -38,4 +38,7 @@ public class Panne {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StatutPanne statut;
+
+    /** Indique si la panne est sévère (nécessite un constat) ou réparable directement */
+    private Boolean estSevere;
 }

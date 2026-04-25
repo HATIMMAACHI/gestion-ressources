@@ -15,10 +15,12 @@ public class ConstatResponse {
     private UUID id;
     private UUID panneId;
     private UUID technicienId;
+    private String technicienNom;
     private String explication;
     private Frequence frequence;
     private TypePanne typePanne;
     private DecisionResponsable decisionResponsable;
     private LocalDate dateConstat;
+    private LocalDate dateApparitionPanne;
     private Boolean notificationEnvoyee;
 }
