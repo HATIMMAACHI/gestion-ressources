@@ -21,4 +21,14 @@ public class RessourceResponse {
     private UUID fournisseurId;
     private UUID offreId;
     private AffectationResponse affectation;
+
+    // Champs spécifiques (Ordinateur)
+    private String cpu;
+    private String ram;
+    private String disqueDur;
+    private String ecran;
+
+    // Champs spécifiques (Imprimante)
+    private String vitesseImpression;
+    private String resolution;
 }

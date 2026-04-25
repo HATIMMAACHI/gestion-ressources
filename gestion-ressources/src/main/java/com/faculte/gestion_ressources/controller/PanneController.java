@@ -26,16 +26,20 @@ public class PanneController {
     private final PanneService panneService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ENSEIGNANT', 'CHEF_DEPT')")
+    @PreAuthorize("hasAnyRole('ENSEIGNANT', 'CHEF_DEPT', 'RESPONSABLE')")
     public ResponseEntity<ApiResponse<PanneResponse>> signal(@Valid @RequestBody PanneRequest request, Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(panneService.create(request, authentication.getName()), "Panne signalée"));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('RESPONSABLE', 'TECHNICIEN', 'CHEF_DEPT')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'TECHNICIEN', 'CHEF_DEPT', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<List<PanneResponse>>> findAll(
             @RequestParam(required = false) StatutPanne statut,
-            @RequestParam(required = false) UUID ressourceTypeId) {
+            @RequestParam(required = false) UUID ressourceTypeId,
+            Authentication authentication) {
+        if (authentication != null && authentication.getAuthorities().stream().anyMatch(a -> "ROLE_ENSEIGNANT".equals(a.getAuthority()))) {
+            return ResponseEntity.ok(ApiResponse.success(panneService.findMine(statut, authentication.getName()), "Pannes récupérées"));
+        }
         return ResponseEntity.ok(ApiResponse.success(panneService.findAll(statut, ressourceTypeId), "Pannes récupérées"));
     }
 

@@ -1,6 +1,7 @@
 package com.faculte.gestion_ressources.controller;
 
 import com.faculte.gestion_ressources.dto.request.BesoinRequest;
+import com.faculte.gestion_ressources.dto.request.BesoinStatusRequest;
 import com.faculte.gestion_ressources.dto.response.BesoinResponse;
 import com.faculte.gestion_ressources.enums.StatutBesoin;
 import com.faculte.gestion_ressources.exception.ApiResponse;
@@ -42,6 +43,14 @@ public class BesoinController {
             @PathVariable UUID id,
             @Valid @RequestBody BesoinRequest request) {
         return ResponseEntity.ok(ApiResponse.success(besoinService.update(id, request), "Besoin mis à jour"));
+    }
+
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAnyRole('CHEF_DEPT', 'RESPONSABLE')")
+    public ResponseEntity<ApiResponse<BesoinResponse>> updateStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody BesoinStatusRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(besoinService.updateStatus(id, request), "Statut du besoin mis à jour"));
     }
 
     @DeleteMapping("/{id}")

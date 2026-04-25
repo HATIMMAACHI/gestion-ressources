@@ -5,6 +5,8 @@ import com.faculte.gestion_ressources.dto.response.OffreResponse;
 import com.faculte.gestion_ressources.entity.AppelOffre;
 import com.faculte.gestion_ressources.entity.Fournisseur;
 import com.faculte.gestion_ressources.entity.Offre;
+import com.faculte.gestion_ressources.entity.User;
+import com.faculte.gestion_ressources.enums.Role;
 import com.faculte.gestion_ressources.enums.NotificationType;
 import com.faculte.gestion_ressources.enums.StatutAppelOffre;
 import com.faculte.gestion_ressources.enums.StatutOffre;
@@ -47,11 +49,7 @@ public class OffreServiceImpl implements OffreService {
     @Override
     @Transactional
     public OffreResponse create(OffreRequest request, String fournisseurEmail) {
-        Fournisseur fournisseur = fournisseurRepository.findByUserId(
-            userRepository.findByEmail(fournisseurEmail)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"))
-                .getId()
-        ).orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Fournisseur non trouvé"));
+        Fournisseur fournisseur = resolveFournisseur(fournisseurEmail);
 
         fournisseurService.checkBlacklist(fournisseur.getId());
 
@@ -91,16 +89,50 @@ public class OffreServiceImpl implements OffreService {
     }
 
     @Override
-    public List<OffreResponse> findAllByAppelOffre(UUID appelOffreId) {
-        return offreRepository.findByAppelOffreIdOrderByPrixTotalAsc(appelOffreId).stream()
+    public List<OffreResponse> findAll(StatutOffre statut) {
+        List<Offre> offres = statut == null
+                ? offreRepository.findAll()
+                : offreRepository.findByStatutOrderByIdDesc(statut);
+
+        return offres.stream()
                 .map(offreMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public OffreResponse findById(UUID id) {
-        return offreMapper.toResponse(offreRepository.findById(id)
-                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Offre non trouvée")));
+    public List<OffreResponse> findAllByAppelOffre(UUID appelOffreId, String currentUserEmail) {
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        List<Offre> offres = currentUser.getRole() == Role.FOURNISSEUR
+                ? offreRepository.findByAppelOffreIdAndFournisseurIdOrderByPrixTotalAsc(appelOffreId, resolveFournisseur(currentUserEmail).getId())
+                : offreRepository.findByAppelOffreIdOrderByPrixTotalAsc(appelOffreId);
+
+        return offres.stream()
+                .map(offreMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public OffreResponse findById(UUID id, String currentUserEmail) {
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        Offre offre = currentUser.getRole() == Role.FOURNISSEUR
+                ? offreRepository.findByIdAndFournisseurId(id, resolveFournisseur(currentUserEmail).getId())
+                    .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Offre non trouvée"))
+                : offreRepository.findById(id)
+                    .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Offre non trouvée"));
+
+        return offreMapper.toResponse(offre);
+    }
+
+    @Override
+    public List<OffreResponse> findMine(String currentUserEmail) {
+        Fournisseur fournisseur = resolveFournisseur(currentUserEmail);
+        return offreRepository.findByFournisseurIdOrderByIdDesc(fournisseur.getId()).stream()
+                .map(offreMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -123,19 +155,43 @@ public class OffreServiceImpl implements OffreService {
                 payload.put("message", "Votre offre a été retenue");
                 payload.put("offreId", o.getId());
                 payload.put("appelOffreId", appelOffre.getId());
-                notificationService.send(o.getFournisseur().getUser().getId(), NotificationType.OFFRE_ACCEPTEE, payload);
+                notificationService.send(o.getFournisseur().getId(), NotificationType.OFFRE_ACCEPTEE, payload);
             } else {
                 o.setStatut(StatutOffre.REJETEE);
                 Map<String, Object> payload = new HashMap<>();
                 payload.put("message", "Votre offre n'a pas été retenue");
                 payload.put("offreId", o.getId());
                 payload.put("appelOffreId", appelOffre.getId());
-                notificationService.send(o.getFournisseur().getUser().getId(), NotificationType.OFFRE_REJETEE, payload);
+                notificationService.send(o.getFournisseur().getId(), NotificationType.OFFRE_REJETEE, payload);
             }
         }
         
         appelOffre.setStatut(StatutAppelOffre.CLOS);
         appelOffreRepository.save(appelOffre);
         offreRepository.saveAll(toutesOffres);
+    }
+
+    @Override
+    @Transactional
+    public void selectionnerMoinsDisant(UUID appelOffreId) {
+        List<Offre> offres = offreRepository.findByAppelOffreIdOrderByPrixTotalAsc(appelOffreId);
+        if (offres.isEmpty()) {
+            throw new AppException(HttpStatus.NOT_FOUND, "Aucune offre disponible pour cet appel d'offre");
+        }
+
+        Offre candidate = offres.stream()
+                .filter(item -> item.getStatut() == StatutOffre.EN_ATTENTE)
+                .findFirst()
+                .orElse(offres.get(0));
+
+        selectionner(candidate.getId());
+    }
+
+    private Fournisseur resolveFournisseur(String fournisseurEmail) {
+        User user = userRepository.findByEmail(fournisseurEmail)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        return fournisseurRepository.findById(user.getId())
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Fournisseur non trouvé"));
     }
 }

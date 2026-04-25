@@ -17,6 +17,7 @@ import com.faculte.gestion_ressources.repository.BesoinRepository;
 import com.faculte.gestion_ressources.repository.UserRepository;
 import com.faculte.gestion_ressources.service.AppelOffreService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AppelOffreServiceImpl implements AppelOffreService {
 
     private final AppelOffreRepository appelOffreRepository;
@@ -92,8 +94,11 @@ public class AppelOffreServiceImpl implements AppelOffreService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<AppelOffreResponse> findAll() {
-        return appelOffreRepository.findAll().stream()
+        List<AppelOffre> entities = appelOffreRepository.findAll();
+        log.info("DEBUG: Nombre d'appels d'offre trouves en base : {}", entities.size());
+        return entities.stream()
                 .map(appelOffreMapper::toResponse)
                 .collect(Collectors.toList());
     }

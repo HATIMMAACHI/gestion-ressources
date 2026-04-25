@@ -7,6 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface FournisseurRepository extends JpaRepository<Fournisseur, UUID> {
-    Optional<Fournisseur> findByUserId(UUID userId);
     List<Fournisseur> findByEstListeNoire(Boolean estListeNoire);
 }

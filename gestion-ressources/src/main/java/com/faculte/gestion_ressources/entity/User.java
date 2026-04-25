@@ -7,14 +7,18 @@ import org.hibernate.annotations.GenericGenerator;
 
 import java.util.UUID;
 
+import lombok.experimental.SuperBuilder;
+
 @Entity
 @Table(name = "users")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "role", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class User {
+@SuperBuilder
+public abstract class User {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
@@ -29,11 +33,7 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
+    @Column(name = "role", insertable = false, updatable = false)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Role role;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "departement_id")
-    private Departement departement;
 }

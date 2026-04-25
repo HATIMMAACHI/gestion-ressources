@@ -13,6 +13,7 @@ import java.util.UUID;
 public interface PanneService {
     PanneResponse create(PanneRequest request, String signalerEmail);
     List<PanneResponse> findAll(StatutPanne statut, UUID ressourceTypeId);
+    List<PanneResponse> findMine(StatutPanne statut, String currentUserEmail);
     PanneResponse findById(UUID id);
     PanneResponse updateStatut(UUID id, PanneStatusRequest request);
     PanneResponse addConstat(UUID panneId, ConstatRequest request, String technicienEmail);

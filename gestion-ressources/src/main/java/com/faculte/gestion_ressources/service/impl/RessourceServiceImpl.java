@@ -3,13 +3,20 @@ package com.faculte.gestion_ressources.service.impl;
 import com.faculte.gestion_ressources.dto.request.RessourceRequest;
 import com.faculte.gestion_ressources.dto.response.RessourceResponse;
 import com.faculte.gestion_ressources.entity.Fournisseur;
+import com.faculte.gestion_ressources.entity.Imprimante;
 import com.faculte.gestion_ressources.entity.Offre;
+import com.faculte.gestion_ressources.entity.Ordinateur;
+import com.faculte.gestion_ressources.entity.Affectation;
+import com.faculte.gestion_ressources.entity.AffectationPrevue;
 import com.faculte.gestion_ressources.entity.Ressource;
 import com.faculte.gestion_ressources.enums.EtatRessource;
 import com.faculte.gestion_ressources.enums.StatutPanne;
 import com.faculte.gestion_ressources.enums.TypeRessource;
+import com.faculte.gestion_ressources.enums.TypeAffectation;
 import com.faculte.gestion_ressources.exception.AppException;
 import com.faculte.gestion_ressources.mapper.RessourceMapper;
+import com.faculte.gestion_ressources.repository.AffectationPrevueRepository;
+import com.faculte.gestion_ressources.repository.AffectationRepository;
 import com.faculte.gestion_ressources.repository.FournisseurRepository;
 import com.faculte.gestion_ressources.repository.OffreRepository;
 import com.faculte.gestion_ressources.repository.PanneRepository;
@@ -20,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,6 +39,8 @@ public class RessourceServiceImpl implements RessourceService {
     private final RessourceRepository ressourceRepository;
     private final OffreRepository offreRepository;
     private final FournisseurRepository fournisseurRepository;
+    private final AffectationPrevueRepository affectationPrevueRepository;
+    private final AffectationRepository affectationRepository;
     private final PanneRepository panneRepository;
     private final RessourceMapper ressourceMapper;
 
@@ -50,23 +60,86 @@ public class RessourceServiceImpl implements RessourceService {
             throw new AppException(HttpStatus.BAD_REQUEST, "Impossible de déterminer le fournisseur");
         }
 
-        if (fournisseur.getAdresse() == null || fournisseur.getGerant() == null) {
-            throw new AppException(HttpStatus.UNPROCESSABLE_ENTITY, 
-                    "Complétez les informations du fournisseur avant la livraison");
+        // Si des informations fournisseur sont fournies à la réception, on met à jour le profil
+        // (ne bloque pas la création si elles manquent).
+        boolean shouldUpdateFournisseur = false;
+        if (request.getFournisseurAdresse() != null && !request.getFournisseurAdresse().trim().isEmpty()) {
+            fournisseur.setAdresse(request.getFournisseurAdresse().trim());
+            shouldUpdateFournisseur = true;
+        }
+        if (request.getFournisseurGerant() != null && !request.getFournisseurGerant().trim().isEmpty()) {
+            fournisseur.setGerant(request.getFournisseurGerant().trim());
+            shouldUpdateFournisseur = true;
+        }
+        if (request.getFournisseurSiteWeb() != null && !request.getFournisseurSiteWeb().trim().isEmpty()) {
+            fournisseur.setSiteWeb(request.getFournisseurSiteWeb().trim());
+            shouldUpdateFournisseur = true;
+        }
+        if (shouldUpdateFournisseur) {
+            fournisseurRepository.save(fournisseur);
         }
 
-        Ressource ressource = Ressource.builder()
-                .codeInventaire(request.getCodeInventaire())
-                .type(request.getType())
-                .marque(request.getMarque())
-                .specsJson(request.getSpecsJson())
-                .etat(EtatRessource.DISPONIBLE)
-                .dateLivraison(request.getDateLivraison())
-                .fournisseur(fournisseur)
-                .offre(offre)
-                .build();
+        Ressource ressource;
+        if (request.getType() == TypeRessource.ORDINATEUR) {
+            ressource = Ordinateur.builder()
+                    .codeInventaire(request.getCodeInventaire())
+                    .marque(request.getMarque())
+                    .specsJson(request.getSpecsJson())
+                    .etat(EtatRessource.DISPONIBLE)
+                    .dateLivraison(request.getDateLivraison())
+                    .fournisseur(fournisseur)
+                    .offre(offre)
+                    .cpu(request.getCpu())
+                    .ram(request.getRam())
+                    .disqueDur(request.getDisqueDur())
+                    .ecran(request.getEcran())
+                    .build();
+        } else if (request.getType() == TypeRessource.IMPRIMANTE) {
+            ressource = Imprimante.builder()
+                    .codeInventaire(request.getCodeInventaire())
+                    .marque(request.getMarque())
+                    .specsJson(request.getSpecsJson())
+                    .etat(EtatRessource.DISPONIBLE)
+                    .dateLivraison(request.getDateLivraison())
+                    .fournisseur(fournisseur)
+                    .offre(offre)
+                    .vitesseImpression(request.getVitesseImpression())
+                    .resolution(request.getResolution())
+                    .build();
+        } else {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Type de ressource non supporté");
+        }
 
-        return ressourceMapper.toResponse(ressourceRepository.save(ressource));
+        Ressource saved = ressourceRepository.save(ressource);
+
+        // Affectation automatique si l'on dispose d'une offre (donc d'un appel d'offre).
+        if (offre != null && offre.getAppelOffre() != null) {
+            List<AffectationPrevue> prevues = affectationPrevueRepository.findByAppelOffreId(offre.getAppelOffre().getId());
+
+            AffectationPrevue candidate = prevues.stream()
+                    .filter(item -> item.getBesoin() != null
+                            && item.getBesoin().getTypeRessource() == request.getType())
+                    .findFirst()
+                    .orElse(null);
+
+            if (candidate != null) {
+                Affectation affectation = Affectation.builder()
+                        .ressource(saved)
+                        .departement(candidate.getDepartement())
+                        .utilisateur(candidate.getUtilisateur())
+                        .dateAffectation(LocalDate.now())
+                        .actif(true)
+                        .typeAffectation(candidate.getUtilisateur() != null ? TypeAffectation.INDIVIDUELLE : TypeAffectation.DEPARTEMENTALE)
+                        .build();
+
+                affectationRepository.save(affectation);
+
+                saved.setEtat(EtatRessource.AFFECTEE);
+                saved = ressourceRepository.save(saved);
+            }
+        }
+
+        return ressourceMapper.toResponse(saved);
     }
 
     @Override

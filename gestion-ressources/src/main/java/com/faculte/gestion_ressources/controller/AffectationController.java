@@ -22,28 +22,29 @@ public class AffectationController {
     private final AffectationService affectationService;
 
     @PostMapping
-    @PreAuthorize("hasRole('RESPONSABLE')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT')")
     public ResponseEntity<ApiResponse<AffectationResponse>> create(@Valid @RequestBody AffectationRequest request) {
         return ResponseEntity.ok(ApiResponse.success(affectationService.create(request), "Affectation créée"));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<List<AffectationResponse>>> findAll(
             @RequestParam(required = false) UUID departementId,
             @RequestParam(required = false) TypeAffectation typeAffectation,
-            @RequestParam(required = false) Boolean actif) {
-        return ResponseEntity.ok(ApiResponse.success(affectationService.findAll(departementId, typeAffectation, actif), "Affectations récupérées"));
+            @RequestParam(required = false) Boolean actif,
+            @RequestParam(required = false) UUID utilisateurId) {
+        return ResponseEntity.ok(ApiResponse.success(affectationService.findAll(departementId, typeAffectation, actif, utilisateurId), "Affectations récupérées"));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('RESPONSABLE')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT')")
     public ResponseEntity<ApiResponse<AffectationResponse>> update(@PathVariable UUID id, @Valid @RequestBody AffectationRequest request) {
         return ResponseEntity.ok(ApiResponse.success(affectationService.update(id, request), "Affectation modifiée"));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('RESPONSABLE')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         affectationService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Affectation annulée (historisée)"));

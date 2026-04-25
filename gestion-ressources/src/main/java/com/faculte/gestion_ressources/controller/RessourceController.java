@@ -30,7 +30,7 @@ public class RessourceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT', ' TECHNICIEN')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT', 'TECHNICIEN', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<List<RessourceResponse>>> findAll(
             @RequestParam(required = false) TypeRessource type,
             @RequestParam(required = false) EtatRessource etat,
@@ -39,7 +39,7 @@ public class RessourceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT', ' TECHNICIEN')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'CHEF_DEPT', 'TECHNICIEN', 'ENSEIGNANT')")
     public ResponseEntity<ApiResponse<RessourceResponse>> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(ressourceService.findById(id), "Ressource récupérée"));
     }

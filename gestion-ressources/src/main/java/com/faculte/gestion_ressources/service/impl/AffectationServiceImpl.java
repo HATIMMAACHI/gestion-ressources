@@ -5,6 +5,8 @@ import com.faculte.gestion_ressources.dto.response.AffectationResponse;
 import com.faculte.gestion_ressources.entity.Affectation;
 import com.faculte.gestion_ressources.entity.Departement;
 import com.faculte.gestion_ressources.entity.Ressource;
+import com.faculte.gestion_ressources.entity.ChefDepartement;
+import com.faculte.gestion_ressources.entity.Enseignant;
 import com.faculte.gestion_ressources.entity.User;
 import com.faculte.gestion_ressources.enums.EtatRessource;
 import com.faculte.gestion_ressources.enums.StatutPanne;
@@ -58,7 +60,11 @@ public class AffectationServiceImpl implements AffectationService {
             utilisateur = userRepository.findById(request.getUtilisateurId())
                     .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
             
-            if (!utilisateur.getDepartement().getId().equals(departement.getId())) {
+            Departement userDept = null;
+            if (utilisateur instanceof Enseignant e) userDept = e.getDepartement();
+            else if (utilisateur instanceof ChefDepartement c) userDept = c.getDepartement();
+
+            if (userDept == null || !userDept.getId().equals(departement.getId())) {
                 throw new AppException(HttpStatus.UNPROCESSABLE_ENTITY, "L'utilisateur n'appartient pas au département donné");
             }
             typeAffectation = TypeAffectation.INDIVIDUELLE;
@@ -80,11 +86,12 @@ public class AffectationServiceImpl implements AffectationService {
     }
 
     @Override
-    public List<AffectationResponse> findAll(UUID departementId, TypeAffectation typeAffectation, Boolean actif) {
+    public List<AffectationResponse> findAll(UUID departementId, TypeAffectation typeAffectation, Boolean actif, UUID utilisateurId) {
         List<Affectation> list = affectationRepository.findAll();
         if (departementId != null) list = list.stream().filter(a -> a.getDepartement().getId().equals(departementId)).collect(Collectors.toList());
         if (typeAffectation != null) list = list.stream().filter(a -> a.getTypeAffectation() == typeAffectation).collect(Collectors.toList());
         if (actif != null) list = list.stream().filter(a -> a.getActif().equals(actif)).collect(Collectors.toList());
+        if (utilisateurId != null) list = list.stream().filter(a -> a.getUtilisateur() != null && a.getUtilisateur().getId().equals(utilisateurId)).collect(Collectors.toList());
         
         return list.stream().map(this::toResponseWithFormatting).collect(Collectors.toList());
     }
@@ -98,7 +105,12 @@ public class AffectationServiceImpl implements AffectationService {
         if (request.getUtilisateurId() != null) {
             User utilisateur = userRepository.findById(request.getUtilisateurId())
                     .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
-            if (!utilisateur.getDepartement().getId().equals(affectation.getDepartement().getId())) {
+            
+            Departement userDept = null;
+            if (utilisateur instanceof Enseignant e) userDept = e.getDepartement();
+            else if (utilisateur instanceof ChefDepartement c) userDept = c.getDepartement();
+
+            if (userDept == null || !userDept.getId().equals(affectation.getDepartement().getId())) {
                 throw new AppException(HttpStatus.UNPROCESSABLE_ENTITY, "L'utilisateur n'appartient pas au département");
             }
             affectation.setUtilisateur(utilisateur);

@@ -9,6 +9,7 @@ import com.faculte.gestion_ressources.entity.*;
 import com.faculte.gestion_ressources.enums.*;
 import com.faculte.gestion_ressources.exception.AppException;
 import com.faculte.gestion_ressources.mapper.PanneMapper;
+import com.faculte.gestion_ressources.mapper.ConstatMapper;
 import com.faculte.gestion_ressources.repository.*;
 import com.faculte.gestion_ressources.service.NotificationService;
 import com.faculte.gestion_ressources.service.PanneService;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +36,7 @@ public class PanneServiceImpl implements PanneService {
     private final UserRepository userRepository;
     private final AffectationRepository affectationRepository;
     private final PanneMapper panneMapper;
+    private final ConstatMapper constatMapper;
     private final NotificationService notificationService;
 
     @Override
@@ -45,17 +48,22 @@ public class PanneServiceImpl implements PanneService {
         Ressource ressource = ressourceRepository.findById(request.getRessourceId())
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Ressource non trouvée"));
 
-        // Ownership checks
-        Affectation affectation = affectationRepository.findActiveByRessourceId(ressource.getId())
-                .orElseThrow(() -> new AppException(HttpStatus.FORBIDDEN, "Ressource non accessible par votre compte"));
+        boolean isAuthorized = signaler.getRole() == Role.RESPONSABLE;
 
-        boolean isAuthorized = false;
-        if (affectation.getTypeAffectation() == TypeAffectation.INDIVIDUELLE) {
-            if (affectation.getUtilisateur() != null) {
-                isAuthorized = affectation.getUtilisateur().getId().equals(signaler.getId());
+        if (!isAuthorized) {
+            // Ownership checks for non-responsible users only
+            Affectation affectation = affectationRepository.findActiveByRessourceId(ressource.getId())
+                    .orElseThrow(() -> new AppException(HttpStatus.FORBIDDEN, "Ressource non accessible par votre compte"));
+
+            UUID affectationDepartementId = affectation.getDepartement() != null ? affectation.getDepartement().getId() : null;
+            UUID signalerDepartementId = getUserDepartementId(signaler);
+
+            if (signaler.getRole() == Role.ENSEIGNANT) {
+                isAuthorized = affectation.getUtilisateur() != null
+                        && Objects.equals(affectation.getUtilisateur().getId(), signaler.getId());
+            } else if (signaler.getRole() == Role.CHEF_DEPT) {
+                isAuthorized = Objects.equals(affectationDepartementId, signalerDepartementId);
             }
-        } else {
-            isAuthorized = affectation.getDepartement().getId().equals(signaler.getDepartement().getId());
         }
 
         if (!isAuthorized) {
@@ -82,7 +90,31 @@ public class PanneServiceImpl implements PanneService {
         if (statut != null) {
             pannes = pannes.stream().filter(p -> p.getStatut() == statut).collect(Collectors.toList());
         }
-        return pannes.stream().map(panneMapper::toResponse).collect(Collectors.toList());
+        return pannes.stream().map(panne -> {
+            PanneResponse response = panneMapper.toResponse(panne);
+            constatRepository.findByPanneId(panne.getId()).ifPresent(constat -> response.setConstat(constatMapper.toResponse(constat)));
+            return response;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PanneResponse> findMine(StatutPanne statut, String currentUserEmail) {
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        List<Panne> pannes = panneRepository.findAll().stream()
+                .filter(p -> p.getSignaledBy() != null && Objects.equals(p.getSignaledBy().getId(), currentUser.getId()))
+                .collect(Collectors.toList());
+
+        if (statut != null) {
+            pannes = pannes.stream().filter(p -> p.getStatut() == statut).collect(Collectors.toList());
+        }
+
+        return pannes.stream().map(panne -> {
+            PanneResponse response = panneMapper.toResponse(panne);
+            constatRepository.findByPanneId(panne.getId()).ifPresent(constat -> response.setConstat(constatMapper.toResponse(constat)));
+            return response;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -90,11 +122,7 @@ public class PanneServiceImpl implements PanneService {
         Panne panne = panneRepository.findById(id)
                 .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Panne non trouvée"));
         PanneResponse response = panneMapper.toResponse(panne);
-        constatRepository.findByPanneId(panne.getId()).ifPresent(c -> {
-            // Need a mapper effectively, but since Mapstruct is configured let's assume ConstatMapper is injected or we just 
-            // map it directly if ConstatResponse mapper isn't requested here. Wait, PanneMapper ignores constat.
-            // I will leave it null for simplicity unless requested explicitly in the GET /pannes/{id}.
-        });
+        constatRepository.findByPanneId(panne.getId()).ifPresent(constat -> response.setConstat(constatMapper.toResponse(constat)));
         return response;
     }
 
@@ -176,7 +204,7 @@ public class PanneServiceImpl implements PanneService {
                 payload.put("decision", "RENVOYER");
                 payload.put("garantieActive", true);
                 
-                notificationService.send(ressource.getFournisseur().getUser().getId(), NotificationType.RENVOI_RESSOURCE, payload);
+                notificationService.send(ressource.getFournisseur().getId(), NotificationType.RENVOI_RESSOURCE, payload);
                 constat.setNotificationEnvoyee(true);
             }
         }
@@ -185,5 +213,11 @@ public class PanneServiceImpl implements PanneService {
         constatRepository.save(constat);
 
         return panneMapper.toResponse(panne);
+    }
+
+    private UUID getUserDepartementId(User user) {
+        if (user instanceof Enseignant e && e.getDepartement() != null) return e.getDepartement().getId();
+        if (user instanceof ChefDepartement c && c.getDepartement() != null) return c.getDepartement().getId();
+        return null;
     }
 }

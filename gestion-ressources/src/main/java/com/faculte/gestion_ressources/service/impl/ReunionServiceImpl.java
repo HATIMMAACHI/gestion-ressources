@@ -21,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,8 +55,27 @@ public class ReunionServiceImpl implements ReunionService {
         
         reunionRepository.save(reunion);
 
-        // Passe tous les brouillons du departement à EN_REUNION
-        List<Besoin> besoins = besoinRepository.findByDepartementIdAndStatut(dept.getId(), StatutBesoin.BROUILLON);
+        Set<UUID> besoinIds = new HashSet<>(request.getBesoinIds());
+        if (besoinIds.isEmpty()) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Au moins un besoin doit être sélectionné");
+        }
+
+        List<Besoin> besoins = besoinRepository.findAllById(besoinIds);
+        if (besoins.size() != besoinIds.size()) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "Certains besoins sélectionnés sont introuvables");
+        }
+
+        boolean wrongDepartement = besoins.stream().anyMatch(b ->
+                b.getDepartement() == null || !dept.getId().equals(b.getDepartement().getId()));
+        if (wrongDepartement) {
+            throw new AppException(HttpStatus.FORBIDDEN, "Certains besoins ne sont pas autorisés pour ce département");
+        }
+
+        boolean invalidStatus = besoins.stream().anyMatch(b -> b.getStatut() != StatutBesoin.BROUILLON);
+        if (invalidStatus) {
+            throw new AppException(HttpStatus.CONFLICT, "Seuls les besoins en brouillon peuvent être ajoutés à la réunion");
+        }
+
         besoins.forEach(b -> {
             b.setStatut(StatutBesoin.EN_REUNION);
             b.setReunion(reunion);

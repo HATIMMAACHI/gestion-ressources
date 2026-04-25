@@ -2,6 +2,7 @@ package com.faculte.gestion_ressources.controller;
 
 import com.faculte.gestion_ressources.dto.request.OffreRequest;
 import com.faculte.gestion_ressources.dto.response.OffreResponse;
+import com.faculte.gestion_ressources.enums.StatutOffre;
 import com.faculte.gestion_ressources.exception.ApiResponse;
 import com.faculte.gestion_ressources.service.OffreService;
 import jakarta.validation.Valid;
@@ -27,16 +28,28 @@ public class OffreController {
         return ResponseEntity.ok(ApiResponse.success(offreService.create(request, authentication.getName()), "Offre soumise"));
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('RESPONSABLE')")
+    public ResponseEntity<ApiResponse<List<OffreResponse>>> findAll(@RequestParam(required = false) StatutOffre statut) {
+        return ResponseEntity.ok(ApiResponse.success(offreService.findAll(statut), "Offres récupérées"));
+    }
+
     @GetMapping("/appel-offre/{appelOffreId}")
     @PreAuthorize("hasAnyRole('RESPONSABLE', 'FOURNISSEUR')")
-    public ResponseEntity<ApiResponse<List<OffreResponse>>> findAllByAppelOffre(@PathVariable UUID appelOffreId) {
-        return ResponseEntity.ok(ApiResponse.success(offreService.findAllByAppelOffre(appelOffreId), "Offres récupérées"));
+    public ResponseEntity<ApiResponse<List<OffreResponse>>> findAllByAppelOffre(@PathVariable UUID appelOffreId, Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(offreService.findAllByAppelOffre(appelOffreId, authentication.getName()), "Offres récupérées"));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('RESPONSABLE', 'FOURNISSEUR')")
-    public ResponseEntity<ApiResponse<OffreResponse>> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(offreService.findById(id), "Offre récupérée"));
+    public ResponseEntity<ApiResponse<OffreResponse>> findById(@PathVariable UUID id, Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(offreService.findById(id, authentication.getName()), "Offre récupérée"));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('FOURNISSEUR')")
+    public ResponseEntity<ApiResponse<List<OffreResponse>>> findMine(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(offreService.findMine(authentication.getName()), "Offres du fournisseur récupérées"));
     }
 
     @PostMapping("/{id}/selectionner")
@@ -44,5 +57,12 @@ public class OffreController {
     public ResponseEntity<ApiResponse<Void>> selectionner(@PathVariable UUID id) {
         offreService.selectionner(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Offre sélectionnée et autres rejetées"));
+    }
+
+    @PostMapping("/appel-offre/{appelOffreId}/selectionner-moins-disant")
+    @PreAuthorize("hasRole('RESPONSABLE')")
+    public ResponseEntity<ApiResponse<Void>> selectionnerMoinsDisant(@PathVariable UUID appelOffreId) {
+        offreService.selectionnerMoinsDisant(appelOffreId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Offre la moins disante sélectionnée"));
     }
 }

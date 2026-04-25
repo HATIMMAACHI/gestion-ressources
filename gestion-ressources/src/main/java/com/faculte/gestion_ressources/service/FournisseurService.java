@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface FournisseurService {
     List<FournisseurResponse> findAll(Boolean estListeNoire);
+    FournisseurResponse findMyProfile(String email);
     FournisseurResponse update(UUID id, FournisseurRequest request);
     void bannir(UUID id, BannirFournisseurRequest request);
     void rehabiliter(UUID id);

@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface AffectationService {
     AffectationResponse create(AffectationRequest request);
-    List<AffectationResponse> findAll(UUID departementId, TypeAffectation typeAffectation, Boolean actif);
+    List<AffectationResponse> findAll(UUID departementId, TypeAffectation typeAffectation, Boolean actif, UUID utilisateurId);
     AffectationResponse update(UUID id, AffectationRequest request);
     void delete(UUID id);
 }

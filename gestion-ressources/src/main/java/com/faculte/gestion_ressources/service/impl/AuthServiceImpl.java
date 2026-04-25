@@ -70,21 +70,14 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(HttpStatus.CONFLICT, "L'email est déjà utilisé");
         }
 
-        User user = User.builder()
+        Fournisseur fournisseur = Fournisseur.builder()
                 .nom(request.getNomSociete())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(Role.FOURNISSEUR)
-                .build();
-        userRepository.save(user);
-
-        Fournisseur fournisseur = Fournisseur.builder()
                 .nomSociete(request.getNomSociete())
-                .user(user)
                 .estListeNoire(false)
                 .build();
-        fournisseurRepository.save(fournisseur);
-
-        return userMapper.toResponse(user);
+        
+        return userMapper.toResponse(userRepository.save(fournisseur));
     }
 }

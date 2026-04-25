@@ -41,7 +41,7 @@ public class AppelOffreController {
     }
 
     @GetMapping("/{id}/affectations-prevues")
-    @PreAuthorize("hasRole('RESPONSABLE')")
+    @PreAuthorize("hasAnyRole('RESPONSABLE', 'FOURNISSEUR')")
     public ResponseEntity<ApiResponse<List<AffectationPrevueResponse>>> getAffectationsPrevues(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(appelOffreService.getAffectationsPrevues(id), "Affectations prévues récupérées"));
     }

@@ -12,6 +12,14 @@ import java.util.UUID;
 public class RessourceRequest {
     private UUID offreId; // Nullable if generic resource creation without strict bindings
 
+    /**
+     * Optionnel: permet de compléter automatiquement le profil fournisseur lors de la réception.
+     * Ces champs ne sont pas requis pour créer une ressource.
+     */
+    private String fournisseurAdresse;
+    private String fournisseurGerant;
+    private String fournisseurSiteWeb;
+
     @NotNull(message = "Le type est requis")
     private TypeRessource type;
 
@@ -26,4 +34,14 @@ public class RessourceRequest {
 
     @NotNull(message = "La date de livraison est requise")
     private LocalDate dateLivraison;
+
+    // Champs spécifiques (Ordinateur)
+    private String cpu;
+    private String ram;
+    private String disqueDur;
+    private String ecran;
+
+    // Champs spécifiques (Imprimante)
+    private String vitesseImpression;
+    private String resolution;
 }

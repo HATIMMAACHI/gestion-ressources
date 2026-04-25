@@ -4,10 +4,12 @@ import com.faculte.gestion_ressources.dto.request.BannirFournisseurRequest;
 import com.faculte.gestion_ressources.dto.request.FournisseurRequest;
 import com.faculte.gestion_ressources.dto.response.FournisseurResponse;
 import com.faculte.gestion_ressources.entity.Fournisseur;
+import com.faculte.gestion_ressources.entity.User;
 import com.faculte.gestion_ressources.enums.NotificationType;
 import com.faculte.gestion_ressources.exception.AppException;
 import com.faculte.gestion_ressources.mapper.FournisseurMapper;
 import com.faculte.gestion_ressources.repository.FournisseurRepository;
+import com.faculte.gestion_ressources.repository.UserRepository;
 import com.faculte.gestion_ressources.service.FournisseurService;
 import com.faculte.gestion_ressources.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class FournisseurServiceImpl implements FournisseurService {
 
     private final FournisseurRepository fournisseurRepository;
+    private final UserRepository userRepository;
     private final FournisseurMapper fournisseurMapper;
     private final NotificationService notificationService;
 
@@ -37,6 +40,17 @@ public class FournisseurServiceImpl implements FournisseurService {
                 fournisseurRepository.findAll();
         return list.stream().map(fournisseurMapper::toResponse).collect(Collectors.toList());
     }
+
+        @Override
+        public FournisseurResponse findMyProfile(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+
+        Fournisseur fournisseur = fournisseurRepository.findById(user.getId())
+            .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Profil fournisseur non trouvé"));
+
+        return fournisseurMapper.toResponse(fournisseur);
+        }
 
     @Override
     @Transactional
@@ -68,7 +82,7 @@ public class FournisseurServiceImpl implements FournisseurService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("motif", request.getMotif());
         payload.put("dateElimination", LocalDate.now().toString());
-        notificationService.send(fournisseur.getUser().getId(), NotificationType.BANNISSEMENT, payload);
+        notificationService.send(fournisseur.getId(), NotificationType.BANNISSEMENT, payload);
     }
 
     @Override

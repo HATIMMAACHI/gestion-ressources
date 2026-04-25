@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,12 @@ public class FournisseurController {
     @PreAuthorize("hasRole('RESPONSABLE')")
     public ResponseEntity<ApiResponse<List<FournisseurResponse>>> findAll(@RequestParam(required = false) Boolean estListeNoire) {
         return ResponseEntity.ok(ApiResponse.success(fournisseurService.findAll(estListeNoire), "Fournisseurs récupérés"));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('FOURNISSEUR')")
+    public ResponseEntity<ApiResponse<FournisseurResponse>> findMe(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(fournisseurService.findMyProfile(authentication.getName()), "Profil fournisseur récupéré"));
     }
 
     @PutMapping("/{id}")

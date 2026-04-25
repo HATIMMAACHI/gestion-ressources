@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface BesoinRepository extends JpaRepository<Besoin, UUID> {
     List<Besoin> findByDepartementId(UUID departementId);
+    List<Besoin> findByStatut(StatutBesoin statut);
     List<Besoin> findByDepartementIdAndStatut(UUID departementId, StatutBesoin statut);
     List<Besoin> findByAppelOffreId(UUID appelOffreId);
 }
